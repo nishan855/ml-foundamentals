@@ -53,6 +53,8 @@ def main():
 
     print(f"\nMean Squared Error: {mse:.2f}")
     print(f"R2 score: {r2:.2f}")
+    print("Coefficient (slope) for YearsExperience:", model.model.coef_[0])
+    print("Intercept (bias):", model.model.intercept_)
     plot_training_hypothesis(X_train_values, y_train, model)
 
 
