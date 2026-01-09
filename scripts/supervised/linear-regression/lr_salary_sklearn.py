@@ -1,63 +1,93 @@
-import sys
 from pathlib import Path
 from typing import Tuple
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
+
 from linear_model import LinearSalaryModel
 
 
 def load_csv(filepath: str, features: list[str], target: str) -> Tuple[pd.DataFrame, pd.Series]:
     df = pd.read_csv(filepath)
-    X = df[features]
-    y = df[target]
-    return X, y
+    return df[features], df[target]
 
 
-def plot_training_hypothesis(X_train_values, y_train, model):
-    """
-    Plot training data and the learned hypothesis (regression line) from training data.
-    """
-    plt.scatter(X_train_values, y_train, color='green', label='Training Data')
-    X_line = np.linspace(X_train_values.min(), X_train_values.max(), 100).reshape(-1, 1)
-    y_line = model.predict(pd.DataFrame(X_line, columns=['YearsExperience']))
-    plt.plot(X_line, y_line, color='red', linewidth=2, label='Learned Hypothesis')
-    plt.xlabel('Years of Experience')
-    plt.ylabel('Salary')
-    plt.title('Linear Regression: Training Data and Hypothesis')
+def plot_training_hypothesis(X_train, y_train, model, title):
+    plt.scatter(X_train, y_train, color="green", label="Training Data")
+
+    X_line = np.linspace(X_train.min(), X_train.max(), 100).reshape(-1, 1)
+    y_line = model.predict(X_line)
+
+    plt.plot(X_line, y_line, color="red", linewidth=2, label="Regression Line")
+    plt.xlabel("Years of Experience")
+    plt.ylabel("Salary")
+    plt.title(title)
     plt.legend()
     plt.grid(True)
     plt.show()
 
 
-def main():
-    script_dir = Path(__file__).parent
-    dataset_path = script_dir / "../../../datasets/lr_salary_dataset.csv"
-    X, y = load_csv(dataset_path, ["YearsExperience"], "Salary")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+def plot_loss_curve(losses):
+    plt.plot(losses)
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE Loss")
+    plt.title("SGD Training Loss per Epoch")
+    plt.grid(True)
+    plt.show()
+
+
+def run_closed_form():
+    dataset = Path(__file__).parent / "../../../datasets/lr_salary_dataset.csv"
+    X, y = load_csv(dataset, ["YearsExperience"], "Salary")
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
     model = LinearSalaryModel()
-    print("Training the model >>>")
-    model.train(X_train, y_train)
-    X_train_values = X_train.values.flatten()
-    print("Predicting the test set >>>")
-    predictions = model.predict(X_test)
-    mse = mean_squared_error(y_test, predictions)
-    r2 = r2_score(y_test, predictions)
-    X_test_values = X_test.values.flatten()
-    print("\nFirst 5 inputs and predicted salaries:")
-    for inp, pred in zip(X_test_values[:5], predictions[:5]):
-        print(f"YearsExperience: {inp}, Predicted Salary: {pred:.2f}")
+    model.train_closed_form(X_train, y_train)
 
-    print(f"\nMean Squared Error: {mse:.2f}")
-    print(f"R2 score: {r2:.2f}")
-    print("Coefficient (slope) for YearsExperience:", model.model.coef_[0])
-    print("Intercept (bias):", model.model.intercept_)
-    plot_training_hypothesis(X_train_values, y_train, model)
+    preds = model.predict(X_test)
 
+    print("MSE:", mean_squared_error(y_test, preds))
+    print("R2 :", r2_score(y_test, preds))
+
+    plot_training_hypothesis(
+        X_train.values.flatten(),
+        y_train,
+        model,
+        "Closed-Form Linear Regression"
+    )
+
+
+def run_sgd():
+    dataset = Path(__file__).parent / "../../../datasets/lr_salary_dataset.csv"
+    X, y = load_csv(dataset, ["YearsExperience"], "Salary")
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    model = LinearSalaryModel()
+    model.train_sgd(X_train, y_train, lr=0.01, epochs=40)
+
+    preds = model.predict(X_test)
+
+    print("MSE:", mean_squared_error(y_test, preds))
+    print("R2 :", r2_score(y_test, preds))
+
+    plot_training_hypothesis(
+        X_train.values.flatten(),
+        y_train,
+        model,
+        "SGD Regression"
+    )
+    plot_loss_curve(model.losses)
 
 
 if __name__ == "__main__":
-    main()
+    run_closed_form()
+    run_sgd()
