@@ -68,12 +68,6 @@ def train_test_linear_grade_prediction_model():
     plt.show()
     
     
-
-    
-
-
-
-
 if __name__ =="__main__":
     train_test_linear_grade_prediction_model()
 
